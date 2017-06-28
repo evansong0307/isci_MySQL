@@ -1,0 +1,129 @@
+#include <mysql/mysql.h>
+#include <ros/ros.h>
+#include <string>
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
+#include <opencv2/highgui/highgui.hpp>
+#include "cardmsgs/CardIO.h"
+using namespace std;
+void finish_with_error(MYSQL *con)
+{
+  fprintf(stderr, "%s\n", mysql_error(con));
+  mysql_close(con);
+  exit(1);
+}
+
+int main(int argc, char **argv)
+{
+
+  FILE *fp = fopen("/home/evansong/catkin_ws/src/mysql/src/mapB.png", "rb");
+
+  if (fp == NULL)
+  {
+      fprintf(stderr, "cannot open image file\n");
+      exit(1);
+  }
+
+  fseek(fp, 0, SEEK_END);
+
+  if (ferror(fp)) {
+
+      fprintf(stderr, "fseek() failed\n");
+      int r = fclose(fp);
+
+      if (r == EOF) {
+          fprintf(stderr, "cannot close file handler\n");
+      }
+
+      exit(1);
+  }
+
+  int flen = ftell(fp);
+
+  if (flen == -1) {
+
+      perror("error occurred");
+      int r = fclose(fp);
+
+      if (r == EOF) {
+          fprintf(stderr, "cannot close file handler\n");
+      }
+
+      exit(1);
+  }
+
+  fseek(fp, 0, SEEK_SET);
+
+  if (ferror(fp)) {
+
+      fprintf(stderr, "fseek() failed\n");
+      int r = fclose(fp);
+
+      if (r == EOF) {
+          fprintf(stderr, "cannot close file handler\n");
+      }
+
+      exit(1);
+  }
+
+  char *data;
+  data=new char [flen+1];
+
+  int size = fread(data, 1, flen, fp);
+
+  if (ferror(fp)) {
+
+      fprintf(stderr, "fread() failed\n");
+      int r = fclose(fp);
+
+      if (r == EOF) {
+          fprintf(stderr, "cannot close file handler\n");
+      }
+
+      exit(1);
+  }
+
+  int r = fclose(fp);
+
+  if (r == EOF) {
+      fprintf(stderr, "cannot close file handler\n");
+  }
+
+  MYSQL *con = mysql_init(NULL);
+
+  if (con == NULL)
+  {
+      fprintf(stderr, "mysql_init() failed\n");
+      exit(1);
+  }
+
+  if (mysql_real_connect(con, "140.113.149.61", "test", "0120","nova", 0, NULL, 0) == NULL)
+  {
+  finish_with_error(con);
+  }
+  if (mysql_query(con, "DROP TABLE IF EXISTS DOCTORS")) {
+        finish_with_error(con);
+    }
+
+  if (mysql_query(con, "CREATE TABLE DOCTORS(Name TEXT,Room TEXT)")) {
+      finish_with_error(con);
+  }
+ 
+ if (mysql_query(con, "INSERT INTO DOCTORS(Name,Room) VALUES('Dr.Chen','125')"))
+  {
+      finish_with_error(con);
+  }
+  
+
+
+ /* if (mysql_query(con, "INSERT INTO DOCTORS(Id,Birth,Name,Health_Check) VALUES('R124304608','0821013','Yu_Shien_Chuang','A')"))
+  {
+      finish_with_error(con);
+  }*/
+
+  mysql_close(con);
+  exit(0);
+}
